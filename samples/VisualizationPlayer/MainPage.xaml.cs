@@ -18,13 +18,16 @@ using Windows.UI.Xaml.Controls.Primitives;
 
 namespace VisualizationPlayer
 {
+    follow these instructions to build:
     // In Visual Studio:
     // Tools-> Package Manager Settings
     // Select Package Sources
     // Click green add button
-    // Name: Audivizualizer MyGet
+    // Name: Audiovisualizer MyGet
     // Source: https://www.myget.org/F/uwpaudiovisualizer/api/v3/index.json
-
+    // Right click on project, manage nuget packages
+    // Select Audiovisualizer MyGet as package source
+    // install the latest version of the audiovisualizer component
 
     /// <summary>
     /// An empty page that can be used on its own or navigated to within a Frame.
