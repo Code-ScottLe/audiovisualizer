@@ -69,7 +69,7 @@ namespace VisualizationPlayer
             _spectrumTextFormat.FontSize = 9;
         }
 
-        const uint spectrumBarCount = 50;
+        const uint spectrumBarCount = 88;
         ArrayData _emptySpectrum = new ArrayData(2, spectrumBarCount);
         ArrayData _previousSpectrum;
         ArrayData _previousPeakSpectrum;
@@ -100,7 +100,7 @@ namespace VisualizationPlayer
             // Get the data if data exists and source is in play state, else use empty
             var spectrumData = args.Data != null && 
                                 spectrum.Source?.PlaybackState == SourcePlaybackState.Playing ? 
-                                args.Data.Spectrum.TransformLinearFrequency(spectrumBarCount,0,20000f) : 
+                                args.Data.Spectrum.TransformLinearFrequency(spectrumBarCount,27,5500) : 
                                 _emptySpectrum;
 
             _previousSpectrum = spectrumData.ApplyRiseAndFall(_previousSpectrum, _rmsRiseTime, _rmsFallTime, _frameDuration);
@@ -121,7 +121,7 @@ namespace VisualizationPlayer
             }
 
             // If source is playing then draw peak spectrum
-            if (spectrum.Source?.PlaybackState == SourcePlaybackState.Playing)
+            //if (spectrum.Source?.PlaybackState == SourcePlaybackState.Playing)
             {
                 // Spectrum points to draw a slow decay line
                 Vector2 prevPointLeft = new Vector2(), prevPointRight = new Vector2();
