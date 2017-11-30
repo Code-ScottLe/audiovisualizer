@@ -70,9 +70,9 @@ namespace VisualizationPlayer
         }
 
         const uint spectrumBarCount = 88;
-        ArrayData _emptySpectrum = new ArrayData(2, spectrumBarCount);
-        ArrayData _previousSpectrum;
-        ArrayData _previousPeakSpectrum;
+        SpectrumData _emptySpectrum = new SpectrumData(27, spectrumBarCount,5500);
+        SpectrumData _previousSpectrum;
+        SpectrumData _previousPeakSpectrum;
 
         TimeSpan _rmsRiseTime = TimeSpan.FromMilliseconds(50);
         TimeSpan _rmsFallTime = TimeSpan.FromMilliseconds(50);
