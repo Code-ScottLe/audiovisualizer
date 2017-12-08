@@ -69,7 +69,7 @@ namespace VisualizationPlayer
             _spectrumTextFormat.FontSize = 9;
         }
 
-        const uint spectrumBarCount = 50;
+        const uint spectrumBarCount = 88;
         SpectrumData _emptySpectrum = new SpectrumData(2, spectrumBarCount,20000);
         SpectrumData _previousSpectrum;
         SpectrumData _previousPeakSpectrum;
@@ -100,7 +100,7 @@ namespace VisualizationPlayer
             // Get the data if data exists and source is in play state, else use empty
             var spectrumData = args.Data != null && 
                                 spectrum.Source?.PlaybackState == SourcePlaybackState.Playing ? 
-                                args.Data.Spectrum.TransformLinearFrequency(spectrumBarCount,0,20000f) : 
+                                args.Data.Spectrum.TransformLinearFrequency(spectrumBarCount,0f,20000f) : 
                                 _emptySpectrum;
 
             _previousSpectrum = spectrumData.ApplyRiseAndFall(_previousSpectrum, _rmsRiseTime, _rmsFallTime, _frameDuration);
@@ -120,56 +120,56 @@ namespace VisualizationPlayer
                 drawingSession.FillRectangle(barX, (float)boundingRectBottom.Bottom - spectrumBarHeight2, barSize.X, spectrumBarHeight2, Colors.DarkCyan);
             }
 
-            // If source is playing then draw peak spectrum
-            if (spectrum.Source?.PlaybackState == SourcePlaybackState.Playing)
-            {
-                // Spectrum points to draw a slow decay line
-                Vector2 prevPointLeft = new Vector2(), prevPointRight = new Vector2();
-                for (int index = 0; index < spectrumBarCount; index++)
-                {
-                    float X = (float)margin.Left + index * barSize.X + barSize.X / 2;
+            //// If source is playing then draw peak spectrum
+            //if (spectrum.Source?.PlaybackState == SourcePlaybackState.Playing)
+            //{
+            //    // Spectrum points to draw a slow decay line
+            //    Vector2 prevPointLeft = new Vector2(), prevPointRight = new Vector2();
+            //    for (int index = 0; index < spectrumBarCount; index++)
+            //    {
+            //        float X = (float)margin.Left + index * barSize.X + barSize.X / 2;
 
-                    Vector2 leftPoint = new Vector2(X, (float)boundingRectTop.Bottom - barSize.Y * (1.0f - logPeakSpectrum[0][index] / -50.0f));
-                    Vector2 rightPoint = new Vector2(X, (float)boundingRectBottom.Bottom - barSize.Y * (1.0f - logPeakSpectrum[1][index] / -50.0f));
-                    if (index != 0)
-                    {
-                        drawingSession.DrawLine(prevPointLeft, leftPoint, Colors.Red, 3);
-                        drawingSession.DrawLine(prevPointRight, rightPoint, Colors.Red, 3);
-                    }
-                    prevPointLeft = leftPoint;
-                    prevPointRight = rightPoint;
-                }
-            }
+            //        Vector2 leftPoint = new Vector2(X, (float)boundingRectTop.Bottom - barSize.Y * (1.0f - logPeakSpectrum[0][index] / -50.0f));
+            //        Vector2 rightPoint = new Vector2(X, (float)boundingRectBottom.Bottom - barSize.Y * (1.0f - logPeakSpectrum[1][index] / -50.0f));
+            //        if (index != 0)
+            //        {
+            //            drawingSession.DrawLine(prevPointLeft, leftPoint, Colors.Red, 3);
+            //            drawingSession.DrawLine(prevPointRight, rightPoint, Colors.Red, 3);
+            //        }
+            //        prevPointLeft = leftPoint;
+            //        prevPointRight = rightPoint;
+            //    }
+            //}
 
             // Draw grid for 1k step from 0 - 20kHz
-            float fStepWidth = (float) boundingRectTop.Width / 20;
-            for (int f=0;f<20;f++)
-            {
-                float X = f * fStepWidth + (float) margin.Left;
-                if (f!=0)
-                {
-                    drawingSession.DrawLine(X, (float)boundingRectTop.Top, X, (float)boundingRectTop.Bottom, gridlineColor);
-                    drawingSession.DrawLine(X, (float)boundingRectBottom.Top, X, (float)boundingRectBottom.Bottom, gridlineColor);
-                }
-                string freqText = $"{f}k";
-                drawingSession.DrawText(freqText, X + fStepWidth/2, (float)boundingRectTop.Bottom + 10, textColor, _spectrumTextFormat);
-                drawingSession.DrawText(freqText, X + fStepWidth / 2, (float)boundingRectBottom.Bottom + 10, textColor, _spectrumTextFormat);
-            }
+            //float fStepWidth = (float) boundingRectTop.Width / 20;
+            //for (int f=0;f<20;f++)
+            //{
+            //    float X = f * fStepWidth + (float) margin.Left;
+            //    if (f!=0)
+            //    {
+            //        drawingSession.DrawLine(X, (float)boundingRectTop.Top, X, (float)boundingRectTop.Bottom, gridlineColor);
+            //        drawingSession.DrawLine(X, (float)boundingRectBottom.Top, X, (float)boundingRectBottom.Bottom, gridlineColor);
+            //    }
+            //    string freqText = $"{f}k";
+            //    drawingSession.DrawText(freqText, X + fStepWidth/2, (float)boundingRectTop.Bottom + 10, textColor, _spectrumTextFormat);
+            //    drawingSession.DrawText(freqText, X + fStepWidth / 2, (float)boundingRectBottom.Bottom + 10, textColor, _spectrumTextFormat);
+            //}
 
-            drawingSession.DrawRectangle(boundingRectTop, gridlineColor);
-            drawingSession.DrawRectangle(boundingRectBottom, gridlineColor);
+            //drawingSession.DrawRectangle(boundingRectTop, gridlineColor);
+            //drawingSession.DrawRectangle(boundingRectBottom, gridlineColor);
 
-            // Draw db based volume grid for spectrum -40 to 0db, every 10db
-            for (int i = -50; i <= 0; i += 10)
-            {
-                float topY = (float)boundingRectTop.Top - (float)i * (float)boundingRectTop.Height / 50.0f;
-                float bottomY = (float)boundingRectBottom.Bottom + (float)i * (float)boundingRectBottom.Height / 50.0f;
-                drawingSession.DrawLine((float)boundingRectTop.Left, topY, (float)boundingRectTop.Right, topY, gridlineColor);
-                drawingSession.DrawLine((float)boundingRectTop.Left, bottomY, (float)boundingRectTop.Right, bottomY, gridlineColor);
-                drawingSession.DrawText($"{i}dB", (float)boundingRectTop.Left - (float)margin.Left / 2, topY, textColor, _spectrumTextFormat);
-                drawingSession.DrawText($"{i}dB", (float)boundingRectTop.Left - (float)margin.Left / 2, bottomY, textColor, _spectrumTextFormat);
+            //// Draw db based volume grid for spectrum -40 to 0db, every 10db
+            //for (int i = -50; i <= 0; i += 10)
+            //{
+            //    float topY = (float)boundingRectTop.Top - (float)i * (float)boundingRectTop.Height / 50.0f;
+            //    float bottomY = (float)boundingRectBottom.Bottom + (float)i * (float)boundingRectBottom.Height / 50.0f;
+            //    drawingSession.DrawLine((float)boundingRectTop.Left, topY, (float)boundingRectTop.Right, topY, gridlineColor);
+            //    drawingSession.DrawLine((float)boundingRectTop.Left, bottomY, (float)boundingRectTop.Right, bottomY, gridlineColor);
+            //    drawingSession.DrawText($"{i}dB", (float)boundingRectTop.Left - (float)margin.Left / 2, topY, textColor, _spectrumTextFormat);
+            //    drawingSession.DrawText($"{i}dB", (float)boundingRectTop.Left - (float)margin.Left / 2, bottomY, textColor, _spectrumTextFormat);
 
-            }
+            //}
         }
     }
 }
