@@ -70,7 +70,7 @@ namespace VisualizationPlayer
         }
 
         const uint spectrumBarCount = 88;
-        SpectrumData _emptySpectrum = new SpectrumData(2, spectrumBarCount,20000);
+        SpectrumData _emptySpectrum = new SpectrumData(2, spectrumBarCount, ScaleType.Linear, ScaleType.Linear, 27, 4186);
         SpectrumData _previousSpectrum;
         SpectrumData _previousPeakSpectrum;
 
@@ -85,7 +85,7 @@ namespace VisualizationPlayer
         {
             var drawingSession = (CanvasDrawingSession)args.DrawingSession;
 
-            Thickness margin = new Thickness(40,10,20,10);
+            Thickness margin = new Thickness(40, 10, 20, 10);
             // Calculate spectum metrics
             Vector2 barSize = new Vector2((float)(args.ViewExtent.Width - margin.Left - margin.Right) / spectrumBarCount,
                                     (float)(args.ViewExtent.Height / 2 - margin.Top * 2 - margin.Bottom * 2)); // Top and bottom margins apply twice (as there are two spectrum displays)
@@ -98,9 +98,9 @@ namespace VisualizationPlayer
             Rect boundingRectBottom = new Rect(margin.Left, margin.Top * 2 + margin.Bottom + barSize.Y, args.ViewExtent.Width - margin.Right - margin.Left, barSize.Y);
 
             // Get the data if data exists and source is in play state, else use empty
-            var spectrumData = args.Data != null && 
-                                spectrum.Source?.PlaybackState == SourcePlaybackState.Playing ? 
-                                args.Data.Spectrum.TransformLinearFrequency(spectrumBarCount,0f,20000f) : 
+            var spectrumData = args.Data != null &&
+                                spectrum.Source?.PlaybackState == SourcePlaybackState.Playing ?
+                                args.Data.Spectrum.TransformLogFrequency(spectrumBarCount, 27, 4186) :
                                 _emptySpectrum;
 
             _previousSpectrum = spectrumData.ApplyRiseAndFall(_previousSpectrum, _rmsRiseTime, _rmsFallTime, _frameDuration);
@@ -120,7 +120,7 @@ namespace VisualizationPlayer
                 drawingSession.FillRectangle(barX, (float)boundingRectBottom.Bottom - spectrumBarHeight2, barSize.X, spectrumBarHeight2, Colors.DarkCyan);
             }
 
-            //// If source is playing then draw peak spectrum
+            // If source is playing then draw peak spectrum
             //if (spectrum.Source?.PlaybackState == SourcePlaybackState.Playing)
             //{
             //    // Spectrum points to draw a slow decay line
@@ -142,17 +142,17 @@ namespace VisualizationPlayer
             //}
 
             // Draw grid for 1k step from 0 - 20kHz
-            //float fStepWidth = (float) boundingRectTop.Width / 20;
-            //for (int f=0;f<20;f++)
+            //float fStepWidth = (float)boundingRectTop.Width / 20;
+            //for (int f = 0; f < 20; f++)
             //{
-            //    float X = f * fStepWidth + (float) margin.Left;
-            //    if (f!=0)
+            //    float X = f * fStepWidth + (float)margin.Left;
+            //    if (f != 0)
             //    {
             //        drawingSession.DrawLine(X, (float)boundingRectTop.Top, X, (float)boundingRectTop.Bottom, gridlineColor);
             //        drawingSession.DrawLine(X, (float)boundingRectBottom.Top, X, (float)boundingRectBottom.Bottom, gridlineColor);
             //    }
             //    string freqText = $"{f}k";
-            //    drawingSession.DrawText(freqText, X + fStepWidth/2, (float)boundingRectTop.Bottom + 10, textColor, _spectrumTextFormat);
+            //    drawingSession.DrawText(freqText, X + fStepWidth / 2, (float)boundingRectTop.Bottom + 10, textColor, _spectrumTextFormat);
             //    drawingSession.DrawText(freqText, X + fStepWidth / 2, (float)boundingRectBottom.Bottom + 10, textColor, _spectrumTextFormat);
             //}
 
