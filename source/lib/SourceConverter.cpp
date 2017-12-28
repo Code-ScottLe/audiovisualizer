@@ -236,7 +236,9 @@ namespace AudioVisualizer
 		ComPtr<IVisualizationDataFrame> sourceFrame;
 		if (_bMapChannels && _channelCount != nullptr)
 		{
-			hr = MapChannels(pSource, &sourceFrame);
+			UINT32 outChannels;
+			_channelCount->get_Value(&outChannels);
+			pSource->CombineChannels(_channelMappingMatrix.size(), _channelMappingMatrix.data(), outChannels, &sourceFrame);
 			if (FAILED(hr))
 				return hr;
 		}
@@ -245,12 +247,6 @@ namespace AudioVisualizer
 			sourceFrame = pSource;
 		}
 		
-
-		TimeSpan frameTime;
-		sourceFrame->get_Time(&frameTime);
-		TimeSpan frameDuration;
-		sourceFrame->get_Duration(&frameDuration);
-
 		ComPtr<ISpectrumData> spectrum;
 		sourceFrame->get_Spectrum(&spectrum);
 		ComPtr<IScalarData> rms;
@@ -289,38 +285,10 @@ namespace AudioVisualizer
 			peak.CopyTo(&_previousPeak);
 		}
 
-		ComPtr<VisualizationDataFrame> resultFrame = Make<VisualizationDataFrame>(
-			frameTime.Duration,
-			frameDuration.Duration,
-			rms.Get(),
-			peak.Get(),
-			spectrum.Get()
-			);
-
-		return resultFrame.CopyTo(ppResult);
-	}
-
-	HRESULT SourceConverter::MapChannels(IVisualizationDataFrame *sourceFrame, IVisualizationDataFrame ** ppResult)
-	{
 		TimeSpan frameTime;
 		sourceFrame->get_Time(&frameTime);
 		TimeSpan frameDuration;
 		sourceFrame->get_Duration(&frameDuration);
-
-		ComPtr<ISpectrumData> spectrum;
-		sourceFrame->get_Spectrum(&spectrum);
-		ComPtr<IScalarData> peak;
-		sourceFrame->get_Peak(&peak);
-
-		UINT32 channelCount = 0;
-		_channelCount->get_Value(&channelCount);
-
-		ComPtr<IScalarData> rms;
-		sourceFrame->get_RMS(&rms);
-		ComPtr<IScalarData> newRms;
-		CloneScalarWithChannelCount(rms.Get(), channelCount , &newRms);
-		
-
 		ComPtr<VisualizationDataFrame> resultFrame = Make<VisualizationDataFrame>(
 			frameTime.Duration,
 			frameDuration.Duration,
@@ -331,6 +299,7 @@ namespace AudioVisualizer
 
 		return resultFrame.CopyTo(ppResult);
 	}
+
 
 	HRESULT SourceConverter::CloneScalarWithChannelCount(IScalarData * pSource, UINT32 channelCount, IScalarData ** ppResult)
 	{

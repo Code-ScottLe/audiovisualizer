@@ -64,6 +64,7 @@ namespace AudioVisualizer
 				return E_INVALIDARG;
 			return _spectrum.CopyTo(ppData);
 		}
+		STDMETHODIMP CombineChannels(UINT32 elementCount, float *pMap, UINT32 cChannels, IVisualizationDataFrame **result);
 
 		bool IsBefore(REFERENCE_TIME time) { return time < _time.Duration; }
 		bool IsAfter(REFERENCE_TIME time) { return time >= (_time.Duration + _duration.Duration) + 50; }

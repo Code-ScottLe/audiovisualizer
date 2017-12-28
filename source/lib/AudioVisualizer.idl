@@ -332,6 +332,7 @@ namespace AudioVisualizer
 		[propget] HRESULT RMS([out, retval] ScalarData **data);
 		[propget] HRESULT Peak([out, retval] ScalarData **data);
 		[propget] HRESULT Spectrum([out, retval] SpectrumData **data);
+		HRESULT CombineChannels([in] UINT32 elementCount, [in, size_is(elementCount)] float *pMap, [in] UINT32 cChannels, [out, retval] IVisualizationDataFrame **result);
 	};
 
 	 

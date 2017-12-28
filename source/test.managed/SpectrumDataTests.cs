@@ -211,36 +211,41 @@ namespace test.managed
                         new float[] { 1,0,0,0,0 },
                         new float[] { 0,1,0,0,0 },
                         new float[] { 0,0,1,0,0 },
-                        new float[] { 0,0,0,1,0 },
-                        new float[] { 0,0,0,0,1 },
+                        new float[] { 0,0,0,1,0 }
                     },
                     ScaleType.Linear,
                     ScaleType.Linear,
                     0,
                     20000
                 );
-            /*
-            Assert.ThrowsException<NullReferenceException>(() => { data.CombineChannels(null); }, "Null parameter");
-            Assert.ThrowsException<ArgumentException>(() => { data.CombineChannels(new float[] { }); }, "Empty map");
-            Assert.ThrowsException<ArgumentException>(() => { data.CombineChannels(new float[] { 0, 0, 0, 0 }); }, "Too few elements");
+            
+            Assert.ThrowsException<NullReferenceException>(() => { data.CombineChannels(null,2); }, "Null parameter");
+            Assert.ThrowsException<ArgumentException>(() => { data.CombineChannels(new float[] { },2); }, "Empty map");
+            Assert.ThrowsException<ArgumentException>(() => { data.CombineChannels(new float[3],2); }, "Too few elements");
+            var logData = SpectrumData.CreateEmpty(2, 10, ScaleType.Logarithmic, ScaleType.Linear, 0, 20000);
             Assert.ThrowsException<ArgumentException>(() =>
             {
-                var logData = SpectrumData.CreateEmpty(2, 10, ScaleType.Logarithmic, ScaleType.Linear, 0, 20000);
-                data.CombineChannels(new float[] { 0.5f, 0.5f });
+                data.CombineChannels(new float[] { 0.5f, 0.5f },1);
             }, "Combine log amp data");
 
-            var spectrum = data.CombineChannels(new float[] { 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f });
-            
-            Assert.AreEqual(2, spectrum.Count);
-            Assert.AreEqual(5u, spectrum.FrequencyCount);
-            Assert.AreEqual(ScaleType.Linear, spectrum.AmplitudeScale);
-            Assert.AreEqual(ScaleType.Linear, spectrum.FrequencyScale);
-            Assert.AreEqual(0.0f, spectrum.MinFrequency);
-            Assert.AreEqual(20000f, spectrum.MaxFrequency);
-            Assert.AreEqual(4000f, spectrum.FrequencyStep);
-            CollectionAssert.AreEqual(new float[] { 0.1f, 0.2f, 0.3f, 0.4f, 0.5f }, spectrum[0].ToArray());
-            CollectionAssert.AreEqual(new float[] { 0.6f, 0.7f, 0.8f, 0.9f, 1.0f }, spectrum[1].ToArray());
+            /*
+                Map data is organized	D0S0, D0S1, ... D0SN
+                                        D1S0, D1S1, ... D1SN
             */
+            float[] map4to2 = new float[] {
+                0.5f, 0f, 0.1f, 0.0f,
+                0.0f, 0.5f, 0.0f, 0.1f
+            };
+            var combined = data.CombineChannels(map4to2, 2);
+
+            Assert.AreEqual(2, combined.Count);
+            Assert.AreEqual(data.AmplitudeScale, combined.AmplitudeScale);
+            Assert.AreEqual(data.FrequencyCount, combined.FrequencyCount);
+            Assert.AreEqual(data.FrequencyScale, combined.FrequencyScale);
+            Assert.AreEqual(data.FrequencyStep, combined.FrequencyStep);
+            
+            CollectionAssert.AreEqual(new float [] { 0.5f,0f,0.1f,0.0f,0.0f},combined[0].ToArray());
+            CollectionAssert.AreEqual(new float[] { 0f, 0.5f, 0f, 0.1f, 0.0f }, combined[1].ToArray());
         }
 
         public float BinFrequency(SpectrumData data, uint bin)

@@ -100,10 +100,18 @@ namespace test.managed
 
             Assert.ThrowsException<NullReferenceException>(() => { data.CombineChannels(null, 2); });
             Assert.ThrowsException<ArgumentException>(() => { data.CombineChannels(new float[9], 2); });
-
-            var newData = data.CombineChannels(new float[] { 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 10f, 20f, 30f, 40f, 50f }, 2);
+            float[] map5to2 = new float[] { 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 10f, 20f, 30f, 40f, 50f };
+            var newData = data.CombineChannels(map5to2, 2);
             float[] expected = new float[] { 5.5f, 550f };
             CollectionAssert.AreEqual(expected, newData.ToArray());
+
+            ScalarData monoData = ScalarData.Create(new float[] { 1 });
+            float[] map = new float[] { 0.1f, 0.2f,0.3f };
+            var data3ch = monoData.CombineChannels(map, 3);
+            CollectionAssert.AreEqual(map, data3ch.ToArray());
+
+            ScalarData logData = data.ConvertToDecibels(-100, 20);
+            Assert.ThrowsException<Exception>(()=> { logData.CombineChannels(map5to2, 2); });
         }
 
     }

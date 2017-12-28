@@ -121,6 +121,8 @@ namespace AudioVisualizer
 	{
 		if (pMap == nullptr)
 			return E_POINTER;
+		if (cChannels == 0)
+			return E_INVALIDARG;
 		if (cChannels == 0 || elementCount != cChannels * _size)
 			return E_INVALIDARG;
 		if (_amplitudeScale != ScaleType::Linear)

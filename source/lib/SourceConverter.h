@@ -55,7 +55,6 @@ namespace AudioVisualizer
 		InspectableClass(RuntimeClass_AudioVisualizer_SourceConverter, BaseTrust);
 
 		HRESULT ProcessFrame(IVisualizationDataFrame *pSource, IVisualizationDataFrame **ppResult);
-		HRESULT MapChannels(IVisualizationDataFrame *pSource, IVisualizationDataFrame **ppResult);
 		HRESULT CloneScalarWithChannelCount(IScalarData *pSource, UINT32 channelCount, IScalarData **ppResult);
 		HRESULT CloneSpectrumWithChannelCount(ISpectrumData *pSource, UINT32 channelCount,ISpectrumData **ppResult);
 		HRESULT TryConstructingEmptySourceFrame(IVisualizationDataFrame **ppResult);

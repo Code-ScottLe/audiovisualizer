@@ -419,16 +419,18 @@ namespace AudioVisualizer
 	{
 		if (pMap == nullptr)
 			return E_POINTER;
-		if (elementCount < _channels)
+		if (cChannels == 0)
+			return E_INVALIDARG;
+		if (elementCount != _channels * cChannels)
 			return E_INVALIDARG;
 		if (_amplitudeScale != ScaleType::Linear)
 			return E_INVALIDARG;
 
-		UINT32 outputChannels = elementCount / _channels;
+
 		ComPtr<SpectrumData> result;
 		HRESULT hr = MakeAndInitialize<SpectrumData>(
 			&result,
-			outputChannels,
+			cChannels,
 			_size,
 			_amplitudeScale,
 			_frequencyScale,
@@ -447,7 +449,7 @@ namespace AudioVisualizer
 		}
 
 		XMVECTOR *pDest = result->GetBuffer();
-		for (size_t channelIndex = 0; channelIndex < outputChannels; channelIndex++,pDest+=_vElementsCount)
+		for (size_t channelIndex = 0; channelIndex < cChannels; channelIndex++,pDest+=_vElementsCount)
 		{
 			Math::CombineChannels(src.data(), _channels, _vElementsCount, pMap + channelIndex * _channels, pDest);
 		}
