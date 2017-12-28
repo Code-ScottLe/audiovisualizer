@@ -117,4 +117,33 @@ namespace AudioVisualizer
 		return result.CopyTo(ppResult);
 	}
 
+	STDMETHODIMP ScalarData::CombineChannels(UINT32 elementCount, float *pMap, UINT32 cChannels, IScalarData **ppResult)
+	{
+		if (pMap == nullptr)
+			return E_POINTER;
+		if (cChannels == 0 || elementCount != cChannels * _size)
+			return E_INVALIDARG;
+		if (_amplitudeScale != ScaleType::Linear)
+			return E_NOT_VALID_STATE;
+
+		auto result = Make<ScalarData>(cChannels, _amplitudeScale, false);
+
+		/*
+			Map data is organized	D0S0, D0S1, ... D0SN
+									D1S0, D1S1, ... D1SN
+		*/
+		for (size_t destIndex = 0; destIndex < cChannels; destIndex++)
+		{
+			float sum = 0;
+			float *map = pMap + destIndex * _size;
+			for (size_t sourceIndex = 0; sourceIndex < _size; sourceIndex++)
+			{
+				sum += ((float*)_pData)[sourceIndex] * map[sourceIndex];
+			}
+			((float*)result->GetBuffer())[destIndex] = sum;
+		}
+
+		return result.CopyTo(ppResult);
+	}
+
 }

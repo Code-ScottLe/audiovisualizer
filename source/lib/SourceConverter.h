@@ -1,6 +1,7 @@
 #pragma once
 #include "AudioVisualizer.abi.h"
 #include <limits>
+#include <vector>
 #include <windows.ui.xaml.data.h>
 
 using namespace Microsoft::WRL;
@@ -36,6 +37,10 @@ namespace AudioVisualizer
 		ComPtr<IScalarData> _previousRMS;
 		ComPtr<IScalarData> _previousPeak;
 
+		std::vector<float> _channelMap;	// Copy of the channel map property
+		std::vector<float> _channelMappingMatrix;
+		bool _bMapChannels;
+
 		CriticalSection _csLock;
 		TimeSpan _timeFromPrevious;
 
@@ -50,13 +55,25 @@ namespace AudioVisualizer
 		InspectableClass(RuntimeClass_AudioVisualizer_SourceConverter, BaseTrust);
 
 		HRESULT ProcessFrame(IVisualizationDataFrame *pSource, IVisualizationDataFrame **ppResult);
-		HRESULT TryConstructingSourceFrame(IVisualizationDataFrame **ppResult);
+		HRESULT MapChannels(IVisualizationDataFrame *pSource, IVisualizationDataFrame **ppResult);
+		HRESULT CloneScalarWithChannelCount(IScalarData *pSource, UINT32 channelCount, IScalarData **ppResult);
+		HRESULT CloneSpectrumWithChannelCount(ISpectrumData *pSource, UINT32 channelCount,ISpectrumData **ppResult);
+		HRESULT TryConstructingEmptySourceFrame(IVisualizationDataFrame **ppResult);
 		HRESULT CloneSpectrum(ISpectrumData *pSource, ISpectrumData **ppResult);
 		HRESULT CloneScalarData(IScalarData *pSource, IScalarData **ppResult);
 		HRESULT CloneFromFrame(IVisualizationDataFrame *pSource, IVisualizationDataFrame **ppTarget);
 		HRESULT ApplyFrequencyTransforms(ISpectrumData *pSource, ISpectrumData **ppResult);
 		HRESULT ApplyRiseAndFall(ISpectrumData *pSource,ISpectrumData *pPrevious,IReference<TimeSpan> *riseTime,IReference<TimeSpan> *fallTime,ISpectrumData **ppResult);
 		HRESULT ApplyRiseAndFall(IScalarData *pSource,IScalarData *pPrevious, IReference<TimeSpan> *riseTime, IReference<TimeSpan> *fallTime, IScalarData **ppResult);
+		void ResetCachedItems()
+		{
+			_cachedOutputFrame = nullptr;
+			_cachedOutputFrame = nullptr;
+			_previousPeak = nullptr;
+			_previousRMS = nullptr;
+			_previousSpectrum = nullptr;
+		}
+		void BuildChannelMap();
 
 	public:
 		SourceConverter();
@@ -160,7 +177,7 @@ namespace AudioVisualizer
 					&_sourceChanged
 				);
 			}
-			_cachedOutputFrame = nullptr;
+			ResetCachedItems();
 			RaiseConfigurationChanged(L"Source");
 			return S_OK;
 		}
@@ -184,7 +201,7 @@ namespace AudioVisualizer
 					return E_INVALIDARG;
 			}
 			_elementCount = pcElements;
-			_cachedOutputFrame = nullptr;
+			ResetCachedItems();
 			RaiseConfigurationChanged(L"FrequencyCount");
 			return S_OK;
 		}
@@ -200,27 +217,87 @@ namespace AudioVisualizer
 			auto lock = _csLock.Lock();
 			if (pcElements == nullptr)
 				return E_POINTER;
+			bool bValueChanged = true;
+
 			if (pcElements != nullptr)
 			{
 				UINT32 value = 0;
 				pcElements->get_Value(&value);
 				if (value == 0)
 					return E_INVALIDARG;
+				if (_channelCount != nullptr)
+				{
+					UINT32 oldValue = 0;
+					_channelCount->get_Value(&oldValue);
+					if (oldValue == value)
+						bValueChanged = false;
+				}
 			}
-			_channelCount = pcElements;
-			_cachedOutputFrame = nullptr;
-			RaiseConfigurationChanged(L"ChannelCount");
+			else
+			{
+				if (_channelCount == nullptr)
+					bValueChanged = false;
+			}
+
+			if (bValueChanged)
+			{
+				_channelCount = pcElements;
+				_channelMap.resize(0);
+				ResetCachedItems();
+				BuildChannelMap();
+				RaiseConfigurationChanged(L"ChannelCount");
+			}
 			return S_OK;
 		}
 
 		STDMETHODIMP get_ChannelMapping(UINT32 *pCount, float **ppValues)
 		{
-			return E_NOTIMPL;
+			if (ppValues == nullptr || pCount == nullptr)
+				return E_POINTER;
+
+			if (_channelMap.size() != 0)
+				*ppValues = _channelMap.data();
+			else
+				*ppValues = nullptr;
+			*pCount = _channelMap.size();
+
+			return S_OK;
 		}
 
+		/* This property is used to map input to output channels
+			and will depend on ChannelCount. Will have effect if ChannelCount is set only
+
+			for channelCount = 2
+
+			values[0] - coefficient of first input channel into first output channel
+			values[1] - coefficient of first input channel into second output channel
+			values[2] - coefficient of second input channel into first output channel
+			values[3] - coefficient of second input channel into second output channel
+			*/
 		STDMETHODIMP put_ChannelMapping(UINT32 cCount, float *pValues)
 		{
-			return E_NOTIMPL;
+			auto lock = _csLock.Lock();
+			if ( pValues == nullptr)
+			{
+				_channelMap.resize(0);
+			}
+			else
+			{
+				if (_channelCount == nullptr)	// Cannot set without channelcount set
+					return E_INVALIDARG;
+				UINT32 outChannelCount;
+				_channelCount->get_Value(&outChannelCount);
+				if (outChannelCount > cCount)
+					return E_INVALIDARG;
+
+				_channelMap.resize(cCount);
+				for (size_t index = 0; index < cCount; index++)
+				{
+					_channelMap[index] = pValues[index];
+				}
+			}
+			BuildChannelMap();
+			return S_OK;
 		}
 
 		STDMETHODIMP get_MinFrequency(IReference<float> **ppValue)
@@ -250,7 +327,7 @@ namespace AudioVisualizer
 					return E_INVALIDARG;
 			}
 			_minFrequency = pValue;
-			_cachedOutputFrame = nullptr;
+			ResetCachedItems();
 			RaiseConfigurationChanged(L"MinFrequency");
 			return S_OK;
 		}
@@ -281,7 +358,7 @@ namespace AudioVisualizer
 				}
 			}
 			_maxFrequency = pValue;
-			_cachedOutputFrame = nullptr;
+			ResetCachedItems();
 			RaiseConfigurationChanged(L"MaxFrequency");
 			return S_OK;
 		}
@@ -311,7 +388,7 @@ namespace AudioVisualizer
 				}
 			}
 			_frequencyScale = pValue;
-			_cachedOutputFrame = nullptr;
+			ResetCachedItems();
 			RaiseConfigurationChanged(L"FrequencyScale");
 			return S_OK;
 		}
@@ -336,7 +413,6 @@ namespace AudioVisualizer
 					return E_INVALIDARG;
 			}
 			_rmsRiseTime = pTime;
-			_cachedOutputFrame = nullptr;
 			RaiseConfigurationChanged(L"RmsRiseTime");
 			return S_OK;
 		}
@@ -361,7 +437,6 @@ namespace AudioVisualizer
 					return E_INVALIDARG;
 			}
 			_rmsFallTime = pTime;
-			_cachedOutputFrame = nullptr;
 			RaiseConfigurationChanged(L"RmsFallTime");
 			return S_OK;
 		}
@@ -386,7 +461,6 @@ namespace AudioVisualizer
 					return E_INVALIDARG;
 			}
 			_peakRiseTime = pTime;
-			_cachedOutputFrame = nullptr;
 			RaiseConfigurationChanged(L"PeakRiseTime");
 			return S_OK;
 		}
@@ -411,7 +485,6 @@ namespace AudioVisualizer
 					return E_INVALIDARG;
 			}
 			_peakFallTime = pTime;
-			_cachedOutputFrame = nullptr;
 			RaiseConfigurationChanged(L"PeakFallTime");
 			return S_OK;
 		}
@@ -436,7 +509,6 @@ namespace AudioVisualizer
 					return E_INVALIDARG;
 			}
 			_spectrumRiseTime = pTime;
-			_cachedOutputFrame = nullptr;
 			RaiseConfigurationChanged(L"SpectrumRiseTime");
 			return S_OK;
 		}
@@ -461,7 +533,6 @@ namespace AudioVisualizer
 					return E_INVALIDARG;
 			}
 			_spectrumFallTime = pTime;
-			_cachedOutputFrame = nullptr;
 			RaiseConfigurationChanged(L"SpectrumFallTime");
 			return S_OK;
 		}

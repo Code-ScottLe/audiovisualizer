@@ -415,7 +415,7 @@ namespace AudioVisualizer
 		return result.CopyTo(ppResult);
 	}
 
-	STDMETHODIMP SpectrumData::CombineChannels(UINT32 elementCount, float *pMap, ISpectrumData **ppResult)
+	STDMETHODIMP SpectrumData::CombineChannels(UINT32 elementCount, float *pMap,UINT32 cChannels,ISpectrumData **ppResult)
 	{
 		if (pMap == nullptr)
 			return E_POINTER;

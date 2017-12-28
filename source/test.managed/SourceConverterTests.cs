@@ -73,6 +73,7 @@ namespace test.managed
             Assert.IsNull(converter.Source);
             Assert.IsNull(converter.FrequencyCount);
             Assert.IsNull(converter.ChannelCount);
+            Assert.IsNull(converter.ChannelMapping);
             Assert.IsNull(converter.SpectrumRiseTime);
             Assert.IsNull(converter.SpectrumFallTime);
             Assert.IsNull(converter.RmsRiseTime);
@@ -82,6 +83,7 @@ namespace test.managed
             Assert.IsNull(converter.MinFrequency);
             Assert.IsNull(converter.MaxFrequency);
             Assert.IsNull(converter.FrequencyScale);
+
 
             List<string> propertiesChanged = new List<string>();
 
@@ -121,9 +123,26 @@ namespace test.managed
             Assert.IsNotNull(converter.FrequencyCount);
             Assert.AreEqual(10u, converter.FrequencyCount.Value);
             Assert.ThrowsException<ArgumentException>(() => { converter.ChannelCount = 0; });
+            Assert.ThrowsException<ArgumentException>(() => { converter.ChannelMapping = new float[] { 1.0f, 1.0f }; },"Cannot set ChannelMapping without channel count set");
             converter.ChannelCount = 2;
+            Assert.ThrowsException<ArgumentException>(() => { converter.ChannelMapping = new float[] { }; },"Cannot assign empty map");
+            Assert.ThrowsException<ArgumentException>(() => { converter.ChannelMapping = new float[] { 1.0f }; },"Cannot assign shorter map than channel count");
+            var channelMap = new float[] { 1.0f, 1.0f };
+            converter.ChannelMapping = channelMap;
+            CollectionAssert.AreEqual(converter.ChannelMapping, channelMap);
+
+            converter.ChannelMapping = null;    // Can set to null
+            Assert.IsNull(converter.ChannelMapping);
+
+            converter.ChannelMapping = channelMap;
+            converter.ChannelCount = 2; // This should not change as it was previously set to 2
+
+            CollectionAssert.AreEqual(converter.ChannelMapping, channelMap);
+            converter.ChannelCount = 1;
+            Assert.IsNull(converter.ChannelMapping);
+
             Assert.IsNotNull(converter.FrequencyCount);
-            Assert.AreEqual(2u, converter.ChannelCount.Value);
+            Assert.AreEqual(1u, converter.ChannelCount.Value);
             Assert.ThrowsException<ArgumentException>(() => { converter.RmsRiseTime = TimeSpan.Zero; });
             converter.RmsRiseTime = TimeSpan.FromTicks(1);
             Assert.IsNotNull(converter.RmsRiseTime);
@@ -168,7 +187,7 @@ namespace test.managed
             converter.MinFrequency = 0.0f;
             Assert.AreEqual(0.0f, converter.MinFrequency);
             CollectionAssert.AreEqual(
-                new string[] { "Source","FrequencyCount","ChannelCount",
+                new string[] { "Source","FrequencyCount","ChannelCount","ChannelCount",
                     "RmsRiseTime","RmsFallTime","PeakRiseTime","PeakFallTime",
                     "SpectrumRiseTime","SpectrumFallTime",
                     "MinFrequency","MaxFrequency","FrequencyScale","FrequencyScale","MinFrequency" },

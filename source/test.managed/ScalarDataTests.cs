@@ -51,6 +51,7 @@ namespace test.managed
             Assert.ThrowsException<ArgumentException>(() => { var d3 = data.ConvertToDecibels(0, 0); });
         }
 
+
         [TestCategory("ScalarData")]
         [TestMethod()]
         public void ScalarData_RiseAndFall()
@@ -91,7 +92,20 @@ namespace test.managed
                 }
                 );
         }
+        [TestCategory("ScalarData")]
+        [TestMethod()]
+        public void ScalarData_CombineChannels()
+        {
+            ScalarData data = ScalarData.Create(new float[] { 1, 2, 3, 4, 5 });
 
+            Assert.ThrowsException<NullReferenceException>(() => { data.CombineChannels(null, 2); });
+            Assert.ThrowsException<ArgumentException>(() => { data.CombineChannels(new float[9], 2); });
+
+            var newData = data.CombineChannels(new float[] { 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 10f, 20f, 30f, 40f, 50f }, 2);
+            float[] expected = new float[] { 5.5f, 550f };
+            CollectionAssert.AreEqual(expected, newData.ToArray());
+        }
 
     }
+
 }

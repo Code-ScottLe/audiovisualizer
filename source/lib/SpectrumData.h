@@ -86,7 +86,7 @@ namespace AudioVisualizer
 		STDMETHODIMP LogarithmicTransform(UINT32 cElements, float minFrequency, float maxFrequency, ISpectrumData **ppResult);
 		STDMETHODIMP ConvertToDecibels(float minValue, float maxValue, ISpectrumData **ppResult);
 		STDMETHODIMP ApplyRiseAndFall(ISpectrumData *pPrevious, TimeSpan riseTime, TimeSpan fallTime, TimeSpan timeDelta, ISpectrumData **ppResult);
-		STDMETHODIMP CombineChannels(UINT32 elementCount, float *pMap, ISpectrumData **result);
+		STDMETHODIMP CombineChannels(UINT32 elementCount, float *pMap, UINT32 cChannels,ISpectrumData **result);
 		STDMETHODIMP GetFrequency(UINT32 elementIndex, float *pValue)
 		{
 			if (pValue == nullptr)

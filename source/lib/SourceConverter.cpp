@@ -17,10 +17,80 @@ namespace AudioVisualizer
 		_analyzerTypes = AnalyzerType::All;
 		_bCacheData = true;
 		_timeFromPrevious.Duration = 166667;
+		_bMapChannels = false;
 	}
 
 	SourceConverter::~SourceConverter()
 	{
+	}
+
+	// This function assumes access is locked by critical section outside
+	void SourceConverter::BuildChannelMap()
+	{
+		ComPtr<IReference<UINT32>> inputChannels;
+		get_ActualChannelCount(&inputChannels);
+
+		if (inputChannels == nullptr || _channelCount == nullptr)
+		{
+			// We don't know what the input channel count is or there is no channel conversion requested
+			// so disable the channel mapping by setting the mapping matrix length to 0 and 
+			// setting bMapChannels property
+			_channelMappingMatrix.resize(0);
+			_bMapChannels = false;
+			return;
+		}
+
+		UINT32 inputChannelCount = 0;
+		inputChannels->get_Value(&inputChannelCount);
+		UINT32 outputChannelCount = 0;
+		_channelCount->get_Value(&outputChannelCount);
+		if (inputChannelCount == outputChannelCount)
+		{
+			// No mapping necessary
+			_channelMappingMatrix.resize(0);
+			_bMapChannels = false;
+			return;
+		}
+
+		_channelMappingMatrix.resize(inputChannelCount * outputChannelCount);
+
+		if (_channelMap.size() != 0)
+		{
+			// If supplied channel map is shorter than needed then extra elements will be 0
+			for (size_t outputIndex = 0, vectorOffset = 0; outputIndex < outputChannelCount; outputIndex++, vectorOffset += inputChannelCount)
+			{
+				for (size_t inputIndex = 0; inputIndex < inputChannelCount; inputIndex++)
+				{
+					size_t offset = vectorOffset + inputIndex;
+					_channelMappingMatrix[offset] = _channelMap.size() < offset ? _channelMap[offset] : 0.0f;
+				}
+			}
+
+		}
+		else
+		{
+			UINT32 conversionIndex = (inputChannelCount & 0xFF) | (outputChannelCount & 0xFF) << 8;
+			const UINT32 cMonoToStereo = 0x0201, cStereoToMono = 0x0102;
+			switch (conversionIndex)
+			{
+			case cMonoToStereo:
+			case cStereoToMono:
+				_channelMappingMatrix[0] = 0.5f;
+				_channelMappingMatrix[1] = 0.5f;
+				break;
+			default:
+					// With default mapper map all channels with same index from input to output
+					for (size_t outputIndex = 0,vectorOffset = 0; outputIndex < outputChannelCount; outputIndex++,vectorOffset+=inputChannelCount)
+					{
+						for (size_t inputIndex = 0; inputIndex < inputChannelCount; inputIndex++)
+						{
+							_channelMappingMatrix[vectorOffset + inputIndex] = inputIndex == outputIndex ? 1.0f : 0.0f;
+						}
+					}
+				break;
+			}
+		}
+		_bMapChannels = true;
 	}
 
 	/*
@@ -61,7 +131,7 @@ namespace AudioVisualizer
 
 		if (sourceFrame == nullptr)
 		{
-			hr = TryConstructingSourceFrame(&sourceFrame);
+			hr = TryConstructingEmptySourceFrame(&sourceFrame);
 			if (hr != S_OK)
 			{
 				*ppResult = nullptr;
@@ -159,20 +229,34 @@ namespace AudioVisualizer
 		return result.CopyTo(ppValue);
 	}
 
-	HRESULT SourceConverter::ProcessFrame(IVisualizationDataFrame * pSource, IVisualizationDataFrame ** ppResult)
+	HRESULT SourceConverter::ProcessFrame(IVisualizationDataFrame *pSource, IVisualizationDataFrame ** ppResult)
 	{
 		HRESULT hr = S_OK;
+
+		ComPtr<IVisualizationDataFrame> sourceFrame;
+		if (_bMapChannels && _channelCount != nullptr)
+		{
+			hr = MapChannels(pSource, &sourceFrame);
+			if (FAILED(hr))
+				return hr;
+		}
+		else
+		{
+			sourceFrame = pSource;
+		}
+		
+
 		TimeSpan frameTime;
-		pSource->get_Time(&frameTime);
+		sourceFrame->get_Time(&frameTime);
 		TimeSpan frameDuration;
-		pSource->get_Duration(&frameDuration);
+		sourceFrame->get_Duration(&frameDuration);
 
 		ComPtr<ISpectrumData> spectrum;
-		pSource->get_Spectrum(&spectrum);
+		sourceFrame->get_Spectrum(&spectrum);
 		ComPtr<IScalarData> rms;
-		pSource->get_RMS(&rms);
+		sourceFrame->get_RMS(&rms);
 		ComPtr<IScalarData> peak;
-		pSource->get_Peak(&peak);
+		sourceFrame->get_Peak(&peak);
 
 		if ((_analyzerTypes & AnalyzerType::Spectrum) == AnalyzerType::Spectrum && spectrum != nullptr)
 		{
@@ -181,7 +265,7 @@ namespace AudioVisualizer
 			if (FAILED(hr))
 				return hr;
 
-			hr = ApplyRiseAndFall(fTransformed.Get(), _previousSpectrum.Get(),_spectrumRiseTime.Get(),_spectrumFallTime.Get(), &spectrum);
+			hr = ApplyRiseAndFall(fTransformed.Get(), _previousSpectrum.Get(), _spectrumRiseTime.Get(), _spectrumFallTime.Get(), &spectrum);
 			if (FAILED(hr))
 				return hr;
 			spectrum.CopyTo(&_previousSpectrum);
@@ -189,7 +273,7 @@ namespace AudioVisualizer
 		if ((_analyzerTypes & AnalyzerType::RMS) == AnalyzerType::RMS && rms != nullptr)
 		{
 			ComPtr<IScalarData> resultRms;
-			hr = ApplyRiseAndFall(rms.Get(), _previousRMS.Get(), _rmsRiseTime.Get(),_rmsFallTime.Get(), &resultRms);
+			hr = ApplyRiseAndFall(rms.Get(), _previousRMS.Get(), _rmsRiseTime.Get(), _rmsFallTime.Get(), &resultRms);
 			if (FAILED(hr))
 				return hr;
 			rms = resultRms;
@@ -198,7 +282,7 @@ namespace AudioVisualizer
 		if ((_analyzerTypes & AnalyzerType::Peak) == AnalyzerType::Peak && peak != nullptr)
 		{
 			ComPtr<IScalarData> resultPeak;
-			hr = ApplyRiseAndFall(peak.Get(), _previousPeak.Get(), _peakRiseTime.Get(),_peakFallTime.Get(), &resultPeak);
+			hr = ApplyRiseAndFall(peak.Get(), _previousPeak.Get(), _peakRiseTime.Get(), _peakFallTime.Get(), &resultPeak);
 			if (FAILED(hr))
 				return hr;
 			peak = resultPeak;
@@ -216,8 +300,67 @@ namespace AudioVisualizer
 		return resultFrame.CopyTo(ppResult);
 	}
 
+	HRESULT SourceConverter::MapChannels(IVisualizationDataFrame *sourceFrame, IVisualizationDataFrame ** ppResult)
+	{
+		TimeSpan frameTime;
+		sourceFrame->get_Time(&frameTime);
+		TimeSpan frameDuration;
+		sourceFrame->get_Duration(&frameDuration);
+
+		ComPtr<ISpectrumData> spectrum;
+		sourceFrame->get_Spectrum(&spectrum);
+		ComPtr<IScalarData> peak;
+		sourceFrame->get_Peak(&peak);
+
+		UINT32 channelCount = 0;
+		_channelCount->get_Value(&channelCount);
+
+		ComPtr<IScalarData> rms;
+		sourceFrame->get_RMS(&rms);
+		ComPtr<IScalarData> newRms;
+		CloneScalarWithChannelCount(rms.Get(), channelCount , &newRms);
+		
+
+		ComPtr<VisualizationDataFrame> resultFrame = Make<VisualizationDataFrame>(
+			frameTime.Duration,
+			frameDuration.Duration,
+			rms.Get(),
+			peak.Get(),
+			spectrum.Get()
+			);
+
+		return resultFrame.CopyTo(ppResult);
+	}
+
+	HRESULT SourceConverter::CloneScalarWithChannelCount(IScalarData * pSource, UINT32 channelCount, IScalarData ** ppResult)
+	{
+		ScaleType ampScale = ScaleType::Linear;
+		pSource->get_AmplitudeScale(&ampScale);
+		ComPtr<IScalarData> result = Make<ScalarData>(channelCount, ampScale, false);
+		return result.CopyTo(ppResult);
+	}
+
+	HRESULT SourceConverter::CloneSpectrumWithChannelCount(ISpectrumData * pSource, UINT32 channelCount, ISpectrumData ** ppResult)
+	{
+		/*
+		UINT32 frequencyCount = 0;
+		pSource->get_FrequencyCount(&frequencyCount);
+		ScaleType ampScale = ScaleType::Linear;
+		pSource->get_AmplitudeScale(&ampScale);
+		ScaleType fScale = ScaleType::Linear;
+		pSource->get_FrequencyScale(&fScale);
+		float minFrequency = 0;
+		pSource->get_MinFrequency(&minFrequency);
+		float maxFrequency = 0;
+		pSource->get_MaxFrequency(&maxFrequency);
+		ComPtr<ISpectrumData> result = Make<SpectrumData>(channelCount, frequencyCount, ampScale, fScale, minFrequency, maxFrequency, false);
+		return result.CopyTo(ppResult);
+		*/
+		return E_NOTIMPL;
+	}
+
 	// Creates an empty source frame based on input properties
-	HRESULT SourceConverter::TryConstructingSourceFrame(IVisualizationDataFrame ** ppResult)
+	HRESULT SourceConverter::TryConstructingEmptySourceFrame(IVisualizationDataFrame ** ppResult)
 	{
 
 		// Use cached output frame as template, otherwise look at source properties

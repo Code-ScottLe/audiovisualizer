@@ -66,5 +66,6 @@ namespace AudioVisualizer
 
 		STDMETHODIMP ConvertToDecibels(float minValue, float maxValue, IScalarData **ppResult);
 		STDMETHODIMP ApplyRiseAndFall(IScalarData *pPrevious, TimeSpan riseTime, TimeSpan fallTime, TimeSpan timeDelta, IScalarData **ppResult);
+		STDMETHODIMP CombineChannels(UINT32 elementCount, float *pMap, UINT32 cChannels, IScalarData **result);
 	};
 }
