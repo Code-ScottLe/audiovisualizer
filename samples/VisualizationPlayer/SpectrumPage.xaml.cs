@@ -38,6 +38,7 @@ namespace VisualizationPlayer
             _converterSource.SpectrumFallTime = TimeSpan.FromMilliseconds(100);
             _converterSource.RmsRiseTime = TimeSpan.FromMilliseconds(100);
             _converterSource.RmsFallTime = TimeSpan.FromMilliseconds(100);
+            _converterSource.ChannelCount = 1;
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)

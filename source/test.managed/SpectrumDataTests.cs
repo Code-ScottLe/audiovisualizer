@@ -248,6 +248,23 @@ namespace test.managed
             CollectionAssert.AreEqual(new float[] { 0f, 0.5f, 0f, 0.1f, 0.0f }, combined[1].ToArray());
         }
 
+        [TestCategory("SpectrumData")]
+        [TestMethod()]
+        public void SpectrumData_BinFrequency()
+        {
+            var linearSpectrum = SpectrumData.CreateEmpty(1, 1024, ScaleType.Linear, ScaleType.Linear, 0, 24000);
+            float fDelta = 24000.0f / 1024f;
+            float fHalfDelta = fDelta / 2;
+            Assert.AreEqual(0f, linearSpectrum.GetFrequency(0));
+            Assert.AreEqual(fDelta, linearSpectrum.GetFrequency(1));
+            Assert.AreEqual(24000, linearSpectrum.GetFrequency(1024));
+            Assert.AreEqual(24000 + fDelta, linearSpectrum.GetFrequency(1025));
+            Assert.AreEqual(fHalfDelta, linearSpectrum.GetCenterFrequency(0));
+            Assert.AreEqual(fDelta + fHalfDelta, linearSpectrum.GetCenterFrequency(1));
+            Assert.AreEqual(24000 + fHalfDelta, linearSpectrum.GetCenterFrequency(1024));
+            Assert.AreEqual(24000 + fDelta + fHalfDelta, linearSpectrum.GetCenterFrequency(1025));
+        }
+
         public float BinFrequency(SpectrumData data, uint bin)
         {
             if (data.FrequencyScale == ScaleType.Linear)

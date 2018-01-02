@@ -318,9 +318,9 @@ namespace AudioVisualizer
 		HRESULT Create(
 			[in] Windows.Foundation.TimeSpan time,
 			[in] Windows.Foundation.TimeSpan duration,
-			[in] ScalarData *pRMS,
-			[in] ScalarData *pPeak,
-			[in] SpectrumData *pSpectrum,
+			[in] ScalarData *rms,
+			[in] ScalarData *peak,
+			[in] SpectrumData *spectrum,
 			[out, retval] VisualizationDataFrame **ppResult);
 	};
 
@@ -332,7 +332,7 @@ namespace AudioVisualizer
 		[propget] HRESULT RMS([out, retval] ScalarData **data);
 		[propget] HRESULT Peak([out, retval] ScalarData **data);
 		[propget] HRESULT Spectrum([out, retval] SpectrumData **data);
-		HRESULT CombineChannels([in] UINT32 elementCount, [in, size_is(elementCount)] float *pMap, [in] UINT32 cChannels, [out, retval] IVisualizationDataFrame **result);
+		HRESULT CombineChannels([in] UINT32 elementCount, [in, size_is(elementCount)] float *map, [in] UINT32 cChannels, [out, retval] IVisualizationDataFrame **result);
 	};
 
 	 

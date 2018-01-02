@@ -206,6 +206,21 @@ namespace test.managed
             FakeVisualizationSource source = new FakeVisualizationSource();
 
             converter.Source = source;
+            var nullFrame = new VisualizationDataFrame(
+                TimeSpan.Zero,
+                TimeSpan.FromMilliseconds(16.7),
+                null,
+                null,
+                null
+                );
+
+            source.Frame = nullFrame;
+            var convertedNullFrame = converter.GetData();
+
+            Assert.IsNotNull(convertedNullFrame);
+            Assert.IsNull(convertedNullFrame.RMS);
+            Assert.IsNull(convertedNullFrame.Peak);
+            Assert.IsNull(convertedNullFrame.Spectrum);
 
             var frame = new VisualizationDataFrame(
                 TimeSpan.FromSeconds(1),

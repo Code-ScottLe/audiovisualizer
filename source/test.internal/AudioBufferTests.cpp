@@ -11,7 +11,6 @@ using namespace std;
 
 namespace AnalyzerTest
 {
-
 	TEST_CLASS(AudioBuffer)
 	{
 
@@ -100,6 +99,9 @@ namespace AnalyzerTest
 		}
 
 	public:
+		BEGIN_TEST_METHOD_ATTRIBUTE(AudioBuffer_1ch_1ds)
+			TEST_METHOD_ATTRIBUTE(L"AudioBuffer", L"Native")
+		END_TEST_METHOD_ATTRIBUTE()
 		TEST_METHOD(AudioBuffer_1ch_1ds)
 		{
 			TestBuffer(1,1);
